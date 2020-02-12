@@ -250,3 +250,23 @@ bool ModelViewerState::renderImgui(float dt) {
 	
 	return false;
 }
+
+std::vector<glm::vec3> ModelViewerState::convertMeshToVertexVector(const Mesh& mesh, Transform& transform) {
+	std::vector<glm::vec3> returnVector;
+	const Mesh::Data& meshData = mesh.getData();
+
+	if (meshData.indices) {
+		returnVector.resize(meshData.numIndices);
+
+		for (unsigned int i = 0; i < meshData.numIndices; i++) {
+			returnVector[i] = glm::vec3(transform.getMatrix() * glm::vec4(meshData.positions[meshData.indices[i]].vec, 1.0));
+		}
+	}
+	else {
+		returnVector.resize(meshData.numVertices);
+
+		for (unsigned int i = 0; i < meshData.numVertices; i++) {
+			returnVector[i] = glm::vec3(transform.getMatrix() * glm::vec4(meshData.positions[i].vec, 1.0));
+		}
+	}
+}

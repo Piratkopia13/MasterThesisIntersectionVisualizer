@@ -33,4 +33,6 @@ private:
 
 	Scene m_scene;
 
+private:
+	std::vector<glm::vec3> convertMeshToVertexVector(const Mesh& mesh, Transform& transform);
 };
