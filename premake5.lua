@@ -19,6 +19,7 @@ IncludeDir = {}
 IncludeDir["GLFW"] = "libraries/glfw/include"
 IncludeDir["FBX_SDK"] = "libraries/FBX_SDK/include"
 IncludeDir["ImGui"] = "libraries/imgui"
+IncludeDir["Tensorflow"] = "libraries/tensorflow/include"
 
 group "Libraries"
 include "libraries/glfw"
@@ -57,11 +58,17 @@ project "Demo"
 		"libraries",
 		"Sail/src",
 		"%{IncludeDir.FBX_SDK}",
-		"%{IncludeDir.ImGui}"
+		"%{IncludeDir.ImGui}",
+		"%{IncludeDir.Tensorflow}"
 	}
 
 	links {
-		"Sail"
+		"Sail",
+		"tensorflow"
+	}
+
+	libdirs {
+		"libraries/tensorflow/lib"
 	}
 
 	defines { "NOMINMAX",				-- Removes min max macros which cause issues

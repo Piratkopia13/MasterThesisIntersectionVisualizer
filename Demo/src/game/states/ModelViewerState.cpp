@@ -9,12 +9,91 @@
 #include <shellapi.h>
 #include <atlstr.h>
 
+#include <tensorflow/c/c_api.h>
+//#include <cppflow/src/Model.cpp>
+//#include <cppflow/src/Tensor.cpp>
+
+#include "../../model_run.cpp"
+
 ModelViewerState::ModelViewerState(StateStack& stack)
 : State(stack)
 , m_cam(90.f, 1280.f / 720.f, 0.1f, 5000.f)
 , m_camController(&m_cam)
 {
 	SAIL_PROFILE_FUNCTION();
+	{
+		Logger::Log("TF version " + std::string(TF_Version()));
+
+		///*
+		// * Load the frozen model, the input/output tensors names must be provided.
+		// * input_layer_name=conv2d_input:0
+		// * output_layer_name=dense_1/Softmax
+		// */
+		//auto session = std::unique_ptr<MySession>(my_model_load("frozen_model.pb", "input_meshes_input:0", "result/Sigmoid"));
+		//TensorShape inputShape = { {2, 600, 3}, 4 };    // python equivalent: input_shape = (1, 28, 28, 1)
+
+		//std::vector<std::vector<std::vector<float>>> inputData;
+		//// TODO: fill inputData
+		//auto output = tf_obj_unique_ptr(TF_NewTensor(TF_FLOAT,
+		//	inputShape.values, inputShape.dim,
+		//	(void*)inputData.data(), size * sizeof(float), cpp_array_deallocator<float>, nullptr));
+
+		//auto input_values = tf_obj_unique_ptr(ascii2tensor(str, input_shape));
+		//if (!input_values) {
+		//	std::cerr << "Tensor creation failure." << std::endl;
+		//	__debugbreak();
+		//}
+
+		//CStatus status;
+		//TF_Tensor* inputs[] = { input_values.get() };
+		//TF_Tensor* outputs[1] = {};
+		//TF_SessionRun(session->session.get(), nullptr,
+		//	&session->inputs, inputs, 1,
+		//	&session->outputs, outputs, 1,
+		//	nullptr, 0, nullptr, status.ptr);
+		//auto _output_holder = tf_obj_unique_ptr(outputs[0]);
+
+		//if (status.failure()) {
+		//	status.dump_error();
+		//	__debugbreak();
+		//}
+
+		//TF_Tensor& output = *outputs[0];
+		//if (TF_TensorType(&output) != TF_FLOAT) {
+		//	std::cerr << "Error, unexpected output tensor type." << std::endl;
+		//	__debugbreak();
+		//}
+
+		//{
+		//	std::cout << "Prediction output: " << std::endl;
+		//	size_t output_size = TF_TensorByteSize(&output) / sizeof(float);
+		//	auto output_array = (const float*)TF_TensorData(&output);
+		//	for (int i = 0; i < output_size; i++) {
+		//		std::cout << '[' << i << "]=" << output_array[i] << ' ';
+		//		if ((i + 1) % 10 == 0) std::cout << std::endl;
+		//	}
+		//	std::cout << std::endl;
+		//}
+
+		/*CppFlow::Model model("satnet.pb");
+		model.init();
+
+		auto inputMeshes = new CppFlow::Tensor(model, "input_meshes");
+		auto output = new CppFlow::Tensor(model, "result");
+
+		std::vector<float> data(100);
+		std::iota(data.begin(), data.end(), 0);
+
+		inputMeshes->set_data(data);
+
+		model.run(inputMeshes, output);
+		for (float f : output->get_data<float>()) {
+			std::cout << f << " ";
+		}
+		std::cout << std::endl;*/
+
+	}
+	
 
 	// Get the Application instance
 	m_app = Application::getInstance();
@@ -39,75 +118,37 @@ ModelViewerState::ModelViewerState(StateStack& stack)
 
 	// Create/load models
 	auto planeModel = ModelFactory::PlaneModel::Create(glm::vec2(50.f), pbrShader, glm::vec2(30.0f));
-	auto cubeModel = ModelFactory::CubeModel::Create(glm::vec3(0.5f), outlineShader);
+	auto cubeModel = ModelFactory::CubeModel::Create(glm::vec3(0.5f), pbrShader);
 
 	// Create entities
 	{
-		auto e = Entity::Create("Floor");
-		e->addComponent<ModelComponent>(planeModel);
-		e->addComponent<TransformComponent>();
-		auto mat = e->addComponent<MaterialComponent<PBRMaterial>>();
-		mat->get()->setAlbedoTexture("pbr/pavingStones/albedo.tga");
-		mat->get()->setNormalTexture("pbr/pavingStones/normal.tga");
-		mat->get()->setMetalnessRoughnessAOTexture("pbr/pavingStones/metalnessRoughnessAO.tga");
-		m_scene.addEntity(e);
+		m_mesh1 = Entity::Create("Mesh1");
+		m_mesh1->addComponent<ModelComponent>(cubeModel);
+		auto transformComp = m_mesh1->addComponent<TransformComponent>();
+		transformComp->setTranslation(2.f, 1.f, 0.f);
+		auto mat = m_mesh1->addComponent<MaterialComponent<PBRMaterial>>();
+		mat->get()->setColor(glm::vec4(0.2f, 0.8f, 0.2f, 1.0f));
+		m_scene.addEntity(m_mesh1);
+	}
+	{
+		m_mesh2 = Entity::Create("Mesh2");
+		m_mesh2->addComponent<ModelComponent>(cubeModel);
+		auto transformComp = m_mesh2->addComponent<TransformComponent>();
+		transformComp->setTranslation(-2.f, 1.f, 0.f);
+		auto mat = m_mesh2->addComponent<MaterialComponent<PBRMaterial>>();
+		mat->get()->setColor(glm::vec4(0.2f, 0.2f, 0.8f, 1.0f));
+		m_scene.addEntity(m_mesh2);
 	}
 	// Lights
 	{
 		// Add a directional light
 		auto e = Entity::Create("Directional light");
 		glm::vec3 color(1.0f, 1.0f, 1.0f);
-		glm::vec3 direction(0.4f, -0.2f, 1.0f);
+		glm::vec3 direction(-0.8f, -0.5f, -0.4f);
 		direction = glm::normalize(direction);
-		e->addComponent<DirectionalLightComponent>(color, direction);
+		auto dirLightComp = e->addComponent<DirectionalLightComponent>(color, direction);
+		dirLightComp->setIntensity(3.0f);
 		m_scene.addEntity(e);
-
-		// Add four point lights
-		e = Entity::Create("Point light 1");
-		auto& pl = e->addComponent<PointLightComponent>();
-		pl->setColor(glm::vec3(Utils::rnd(), Utils::rnd(), Utils::rnd()));
-		pl->setPosition(glm::vec3(-4.0f, 0.1f, -4.0f));
-		m_scene.addEntity(e);
-
-		e = Entity::Create("Point light 2");
-		pl = e->addComponent<PointLightComponent>();
-		pl->setColor(glm::vec3(Utils::rnd(), Utils::rnd(), Utils::rnd()));
-		pl->setPosition(glm::vec3(-4.0f, 0.1f, 4.0f));
-		m_scene.addEntity(e);
-
-		e = Entity::Create("Point light 3");
-		pl = e->addComponent<PointLightComponent>();
-		pl->setColor(glm::vec3(Utils::rnd(), Utils::rnd(), Utils::rnd()));
-		pl->setPosition(glm::vec3(4.0f, 0.1f, 4.0f));
-		m_scene.addEntity(e);
-
-		e = Entity::Create("Point light 4");
-		pl = e->addComponent<PointLightComponent>();
-		pl->setColor(glm::vec3(Utils::rnd(), Utils::rnd(), Utils::rnd()));
-		pl->setPosition(glm::vec3(4.0f, 0.1f, -4.0f));
-		m_scene.addEntity(e);
-	}
-	// PBR spheres
-	{
-		auto sphereModel = m_app->getResourceManager().getModel("sphere.fbx", pbrShader);
-		const unsigned int gridSize = 7;
-		const float cellSize = 1.3f;
-		for (unsigned int x = 0; x < gridSize; x++) {
-			for (unsigned int y = 0; y < gridSize; y++) {
-				auto e = Entity::Create("Sphere " + std::to_string(x * gridSize + y + 1));
-				auto model = e->addComponent<ModelComponent>(sphereModel);
-				auto transform = e->addComponent<TransformComponent>(glm::vec3(x * cellSize - (cellSize * (gridSize - 1.0f) * 0.5f), y * cellSize + 1.0f, 0.f));
-				transform->setScale(0.5f);
-
-				PBRMaterial* material = e->addComponent<MaterialComponent<PBRMaterial>>()->get();
-				material->setColor(glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
-				// Vary metalness and roughness with cell location
-				material->setRoughnessScale(1.f - (x / (float)gridSize));
-				material->setMetalnessScale(y / (float)gridSize);
-
-				m_scene.addEntity(e);
-			}
-		}
 	}
 }
 

@@ -9,7 +9,7 @@ public:
 	typedef std::unique_ptr<Model> Ptr;
 	typedef std::shared_ptr<Model> SPtr;
 
-public: 
+public:
 	Model(const std::string& name);
 	Model(Mesh::Data& data, Shader* shader, const std::string& name);
 	~Model();
