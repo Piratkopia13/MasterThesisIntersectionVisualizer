@@ -174,6 +174,10 @@ template<class T> static void cpp_array_deallocator(void* data, size_t length, v
     delete []((T *)data);
 }
 
+static void none_deallocator(void* data, size_t length, void* arg) {
+	
+}
+
 /**
  * Read the entire content of a file and return it as a TF_Buffer.
  * @param file: The file to be loaded.

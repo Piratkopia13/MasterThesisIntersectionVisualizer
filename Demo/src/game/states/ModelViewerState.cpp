@@ -16,64 +16,83 @@
 #include "../../model_run.cpp"
 
 ModelViewerState::ModelViewerState(StateStack& stack)
-: State(stack)
-, m_cam(90.f, 1280.f / 720.f, 0.1f, 5000.f)
-, m_camController(&m_cam)
-{
+	: State(stack)
+	, m_cam(90.f, 1280.f / 720.f, 0.1f, 5000.f)
+	, m_camController(&m_cam) {
 	SAIL_PROFILE_FUNCTION();
 	{
 		Logger::Log("TF version " + std::string(TF_Version()));
 
-		///*
-		// * Load the frozen model, the input/output tensors names must be provided.
-		// * input_layer_name=conv2d_input:0
-		// * output_layer_name=dense_1/Softmax
-		// */
-		//auto session = std::unique_ptr<MySession>(my_model_load("frozen_model.pb", "input_meshes_input:0", "result/Sigmoid"));
-		//TensorShape inputShape = { {2, 600, 3}, 4 };    // python equivalent: input_shape = (1, 28, 28, 1)
+		/*
+		 * Load the frozen model, the input/output tensors names must be provided.
+		 */
+		auto session = std::unique_ptr<MySession>(my_model_load("frozen_model_big_boy.pb", "input_meshes_4", "result_4/Sigmoid"));
+		TensorShape inputShape = { {1, 2 * 600 * 3}, 2 };
 
-		//std::vector<std::vector<std::vector<float>>> inputData;
-		//// TODO: fill inputData
-		//auto output = tf_obj_unique_ptr(TF_NewTensor(TF_FLOAT,
-		//	inputShape.values, inputShape.dim,
-		//	(void*)inputData.data(), size * sizeof(float), cpp_array_deallocator<float>, nullptr));
+		std::vector<float> inputData;
+		inputData.reserve(2 * 600 * 3);
+		
+		std::string line;
+		std::ifstream infile("test.txt");
+		while (std::getline(infile, line)) {
+			std::istringstream iss(line);
+			float c;
+			while (iss >> c) {
+				inputData.emplace_back(c);
+			}
+		}
 
-		//auto input_values = tf_obj_unique_ptr(ascii2tensor(str, input_shape));
-		//if (!input_values) {
-		//	std::cerr << "Tensor creation failure." << std::endl;
-		//	__debugbreak();
-		//}
+		//float inputData[2*600*3];
+		//memset(inputData, 0, sizeof(inputData));
+		
+		auto tensor = TF_NewTensor(TF_FLOAT,
+			inputShape.values, inputShape.dim,
+			(void*)inputData.data(), inputData.size() * sizeof(float), none_deallocator, nullptr);
+		
+		if (!tensor) {
+			std::cerr << "Tensor creation failure." << std::endl;
+			__debugbreak();
+		}
 
-		//CStatus status;
-		//TF_Tensor* inputs[] = { input_values.get() };
-		//TF_Tensor* outputs[1] = {};
-		//TF_SessionRun(session->session.get(), nullptr,
-		//	&session->inputs, inputs, 1,
-		//	&session->outputs, outputs, 1,
-		//	nullptr, 0, nullptr, status.ptr);
-		//auto _output_holder = tf_obj_unique_ptr(outputs[0]);
+		CStatus status;
+		TF_Tensor* inputs[] = { tensor };
+		TF_Tensor* outputs[1] = {};
 
-		//if (status.failure()) {
-		//	status.dump_error();
-		//	__debugbreak();
-		//}
+		auto startTime = std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now()).time_since_epoch().count();
 
-		//TF_Tensor& output = *outputs[0];
-		//if (TF_TensorType(&output) != TF_FLOAT) {
-		//	std::cerr << "Error, unexpected output tensor type." << std::endl;
-		//	__debugbreak();
-		//}
+		TF_SessionRun(session->session.get(), nullptr,
+			&session->inputs, inputs, 1,
+			&session->outputs, outputs, 1,
+			nullptr, 0, nullptr, status.ptr);
+		auto _output_holder = tf_obj_unique_ptr(outputs[0]);
 
-		//{
-		//	std::cout << "Prediction output: " << std::endl;
-		//	size_t output_size = TF_TensorByteSize(&output) / sizeof(float);
-		//	auto output_array = (const float*)TF_TensorData(&output);
-		//	for (int i = 0; i < output_size; i++) {
-		//		std::cout << '[' << i << "]=" << output_array[i] << ' ';
-		//		if ((i + 1) % 10 == 0) std::cout << std::endl;
-		//	}
-		//	std::cout << std::endl;
-		//}
+		if (status.failure()) {
+			status.dump_error();
+			__debugbreak();
+		}
+
+		TF_Tensor& output = *outputs[0];
+		if (TF_TensorType(&output) != TF_FLOAT) {
+			std::cerr << "Error, unexpected output tensor type." << std::endl;
+			__debugbreak();
+		}
+
+		{
+			std::cout << "Prediction output: " << std::endl;
+			size_t output_size = TF_TensorByteSize(&output) / sizeof(float);
+			auto output_array = (const float*)TF_TensorData(&output);
+			for (int i = 0; i < output_size; i++) {
+				std::cout << '[' << i << "]=" << output_array[i] << ' ';
+				if ((i + 1) % 10 == 0) std::cout << std::endl;
+			}
+			std::cout << std::endl;
+		}
+
+		auto endTime = std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now()).time_since_epoch().count();
+
+		auto elapsed = endTime - startTime;
+		Logger::Log("Prediction took " + std::to_string(elapsed) + "ms");
+
 
 		/*CppFlow::Model model("satnet.pb");
 		model.init();
