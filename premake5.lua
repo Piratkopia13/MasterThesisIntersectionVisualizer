@@ -51,7 +51,8 @@ project "Demo"
 	removefiles { 
 		"**/ParticleHandler.*",
 		"**/PlayerCameraController.*",
-		"**/Scene.*"
+		"**/Scene.*",
+		"**/model_run.cpp"
 	}
 
 	includedirs {
@@ -95,14 +96,16 @@ project "Demo"
 		defines { "NDEBUG" }
 		optimize "On"
 
-	-- Copy fbxsdk dll to executable path
+	-- Copy dlls to executable path
 	filter { "action:vs2017 or vs2019", "platforms:*64" }
 		postbuildcommands {
-			"{COPY} \"../libraries/FBX_SDK/lib/vs2017/x64/%{cfg.buildcfg}/libfbxsdk.dll\" \"%{cfg.targetdir}\""
+			"{COPY} \"../libraries/FBX_SDK/lib/vs2017/x64/%{cfg.buildcfg}/libfbxsdk.dll\" \"%{cfg.targetdir}\"",
+			"{COPY} \"../libraries/tensorflow/lib/tensorflow.dll\" \"%{cfg.targetdir}\""
 		}
 	filter { "action:vs2017 or vs2019", "platforms:*86" }
 		postbuildcommands {
-			"{COPY} \"../libraries/FBX_SDK/lib/vs2017/x86/%{cfg.buildcfg}/libfbxsdk.dll\" \"%{cfg.targetdir}\""
+			"{COPY} \"../libraries/FBX_SDK/lib/vs2017/x86/%{cfg.buildcfg}/libfbxsdk.dll\" \"%{cfg.targetdir}\"",
+			"{COPY} \"../libraries/tensorflow/lib/tensorflow.dll\" \"%{cfg.targetdir}\""
 		}
 
 -----------------------------------

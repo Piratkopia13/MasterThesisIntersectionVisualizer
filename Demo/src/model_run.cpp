@@ -1,3 +1,10 @@
+#pragma once
+
+//
+// File originially from https://github.com/aljabr0/from-keras-to-c
+// It has been slightly modified to fit the purposes of this program
+//
+
 #include "tensorflow/c/c_api.h"
 #include <memory>
 #include <iostream>
@@ -108,7 +115,7 @@ public:
  * @param output_name: The name of the output tensor
  * @return
  */
-MySession *my_model_load(const char *filename, const char *input_name, const char *output_name){
+MySession *my_model_load(const char *filename, const char *input_name, const char *output_name) {
     printf("Loading model %s\n", filename);
     CStatus status;
 
@@ -211,34 +218,3 @@ struct TensorShape{
         return v;
     }
 };
-
-/**
- * Convert an ascii string into a tensor. The '0's are mapped to 0 whereas all the others are mapped to 1.
- * @param str: The source string
- * @param shape: The required shape of the tensor, this must be compatible with the size of the input string.
- * @return A tensor with dtype = tf.float32
- */
-TF_Tensor *ascii2tensor(const char *str, const TensorShape &shape) {
-    auto size = strlen(str);
-    if(size!=shape.size()){
-        //TODO exception
-    }
-
-    auto output_array = std::make_unique<float[]>(size);
-    {
-        float *dst_ptr = output_array.get();
-        for(const char *ptr = str; ptr < (str + size); ptr++){
-            *dst_ptr = float((*ptr) == '0' ? 0. : 1.);
-            dst_ptr++;
-        }
-    }
-
-    auto output = tf_obj_unique_ptr(TF_NewTensor(TF_FLOAT,
-            shape.values, shape.dim,
-            (void *)output_array.get(), size*sizeof(float), cpp_array_deallocator<float>, nullptr));
-    if(output){
-        // The ownership has been successfully transferred
-        output_array.release();
-    }
-    return output.release();
-}

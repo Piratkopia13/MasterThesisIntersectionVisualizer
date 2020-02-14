@@ -9,11 +9,7 @@
 #include <shellapi.h>
 #include <atlstr.h>
 
-#include <tensorflow/c/c_api.h>
-//#include <cppflow/src/Model.cpp>
-//#include <cppflow/src/Tensor.cpp>
-
-#include "../../model_run.cpp"
+#include "../../TFPredictor.h"
 
 ModelViewerState::ModelViewerState(StateStack& stack)
 	: State(stack)
@@ -21,95 +17,15 @@ ModelViewerState::ModelViewerState(StateStack& stack)
 	, m_camController(&m_cam) {
 	SAIL_PROFILE_FUNCTION();
 	{
-		Logger::Log("TF version " + std::string(TF_Version()));
 
-		/*
-		 * Load the frozen model, the input/output tensors names must be provided.
-		 */
-		auto session = std::unique_ptr<MySession>(my_model_load("frozen_model_big_boy.pb", "input_meshes_4", "result_4/Sigmoid"));
-		TensorShape inputShape = { {1, 2 * 600 * 3}, 2 };
+		TFPredictor predictor("networks/frozen_model_big_boy.pb", "input_meshes_4", "result_4/Sigmoid", 200); // Great accuracy, terrible speed (1024 nodes first layer)
+		//TFPredictor predictor("networks/frozen_model_less_big_boy.pb", "input_meshes_5", "result_5/Sigmoid", 200); // (256 nodes first layer)		
 
-		std::vector<float> inputData;
-		inputData.reserve(2 * 600 * 3);
-		
-		std::string line;
-		std::ifstream infile("test.txt");
-		while (std::getline(infile, line)) {
-			std::istringstream iss(line);
-			float c;
-			while (iss >> c) {
-				inputData.emplace_back(c);
-			}
-		}
+		bool prediction = predictor.predict("networks/true.txt");
+		Logger::Log("Prediction: " + std::to_string(prediction));
+		Logger::Log("\tValue: " + std::to_string(predictor.getLastPredictionValue()));
+		Logger::Log("\tTime " + std::to_string(predictor.getLastPredictionTime()) + "ms");
 
-		//float inputData[2*600*3];
-		//memset(inputData, 0, sizeof(inputData));
-		
-		auto tensor = TF_NewTensor(TF_FLOAT,
-			inputShape.values, inputShape.dim,
-			(void*)inputData.data(), inputData.size() * sizeof(float), none_deallocator, nullptr);
-		
-		if (!tensor) {
-			std::cerr << "Tensor creation failure." << std::endl;
-			__debugbreak();
-		}
-
-		CStatus status;
-		TF_Tensor* inputs[] = { tensor };
-		TF_Tensor* outputs[1] = {};
-
-		auto startTime = std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now()).time_since_epoch().count();
-
-		TF_SessionRun(session->session.get(), nullptr,
-			&session->inputs, inputs, 1,
-			&session->outputs, outputs, 1,
-			nullptr, 0, nullptr, status.ptr);
-		auto _output_holder = tf_obj_unique_ptr(outputs[0]);
-
-		if (status.failure()) {
-			status.dump_error();
-			__debugbreak();
-		}
-
-		TF_Tensor& output = *outputs[0];
-		if (TF_TensorType(&output) != TF_FLOAT) {
-			std::cerr << "Error, unexpected output tensor type." << std::endl;
-			__debugbreak();
-		}
-
-		{
-			std::cout << "Prediction output: " << std::endl;
-			size_t output_size = TF_TensorByteSize(&output) / sizeof(float);
-			auto output_array = (const float*)TF_TensorData(&output);
-			for (int i = 0; i < output_size; i++) {
-				std::cout << '[' << i << "]=" << output_array[i] << ' ';
-				if ((i + 1) % 10 == 0) std::cout << std::endl;
-			}
-			std::cout << std::endl;
-		}
-
-		auto endTime = std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now()).time_since_epoch().count();
-
-		auto elapsed = endTime - startTime;
-		Logger::Log("Prediction took " + std::to_string(elapsed) + "ms");
-
-
-		/*CppFlow::Model model("satnet.pb");
-		model.init();
-
-		auto inputMeshes = new CppFlow::Tensor(model, "input_meshes");
-		auto output = new CppFlow::Tensor(model, "result");
-
-		std::vector<float> data(100);
-		std::iota(data.begin(), data.end(), 0);
-
-		inputMeshes->set_data(data);
-
-		model.run(inputMeshes, output);
-		for (float f : output->get_data<float>()) {
-			std::cout << f << " ";
-		}
-		std::cout << std::endl;*/
 
 	}
 	
