@@ -72,6 +72,8 @@ public:
 	const VertexBuffer& getVertexBuffer() const;
 	const IndexBuffer& getIndexBuffer() const;
 
+	const Mesh::Data& getData() const;
+
 protected:
 	Shader* shader;
 
