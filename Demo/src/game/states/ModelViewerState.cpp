@@ -17,24 +17,59 @@ ModelViewerState::ModelViewerState(StateStack& stack)
 	, m_cam(90.f, 1280.f / 720.f, 0.1f, 5000.f)
 	, m_camController(&m_cam) {
 	SAIL_PROFILE_FUNCTION();
+
+	std::string inputFilePath = "networks/false.txt";
+	unsigned int trianglesPerMesh = 200;
 	{
+		TFPredictor predictor("networks/frozen_model_big_boy.pb", "input_meshes_4", "result_4/Sigmoid", trianglesPerMesh); // Great accuracy, terrible speed (1024 nodes first layer)
+		//TFPredictor predictor("networks/frozen_model_less_big_boy.pb", "input_meshes_5", "result_5/Sigmoid", trianglesPerMesh); // (256 nodes first layer)		
 
-		TFPredictor predictor("networks/frozen_model_big_boy.pb", "input_meshes_4", "result_4/Sigmoid", 200); // Great accuracy, terrible speed (1024 nodes first layer)
-		//TFPredictor predictor("networks/frozen_model_less_big_boy.pb", "input_meshes_5", "result_5/Sigmoid", 200); // (256 nodes first layer)		
-
-		bool prediction = predictor.predict("networks/true.txt");
+		bool prediction = predictor.predict(inputFilePath);
 		Logger::Log("Prediction: " + std::to_string(prediction));
 		Logger::Log("\tValue: " + std::to_string(predictor.getLastPredictionValue()));
 		Logger::Log("\tTime " + std::to_string(predictor.getLastPredictionTime()) + "ms");
 
-		SATIntersection satIntersector(200);
-		bool actualIntersection = satIntersector.testIntersection("networks/true.txt");
+		SATIntersection satIntersector(trianglesPerMesh);
+		bool actualIntersection = satIntersector.testIntersection(inputFilePath);
 		Logger::Log("Actual intersection: " + std::to_string(actualIntersection));
 		Logger::Log("\tTime " + std::to_string(satIntersector.getLastIntersectionTime()) + "ms");
 
 	}
-	
 
+	// Create model from input file
+	Mesh::Data mesh1Data;
+	Mesh::Data mesh2Data;
+	{
+		Mesh::vec3* vertices1 = SAIL_NEW Mesh::vec3[trianglesPerMesh * 3];
+		Mesh::vec3* vertices2 = SAIL_NEW Mesh::vec3[trianglesPerMesh * 3];
+
+		std::string line;
+		std::ifstream infile(inputFilePath);
+		while (std::getline(infile, line)) {
+			std::istringstream iss(line);
+			unsigned int numVertices = 0;
+			float x;
+			while (iss >> x) {
+				Mesh::vec3 vert;
+				vert.vec.x = x;
+				iss >> vert.vec.y;
+				iss >> vert.vec.z;
+				if (numVertices < trianglesPerMesh * 3) {
+					vertices1[numVertices] = vert;
+				} else {
+					vertices2[numVertices - trianglesPerMesh * 3] = vert;
+				}
+				numVertices++;
+			}
+		};
+
+		mesh1Data.numVertices = trianglesPerMesh * 3;
+		mesh1Data.positions = vertices1;
+
+		mesh2Data.numVertices = trianglesPerMesh * 3;
+		mesh2Data.positions = vertices2;
+	}
+	
 	// Get the Application instance
 	m_app = Application::getInstance();
 	//m_scene = std::make_unique<Scene>(AABB(glm::vec3(-100.f, -100.f, -100.f), glm::vec3(100.f, 100.f, 100.f)));
@@ -53,8 +88,11 @@ ModelViewerState::ModelViewerState(StateStack& stack)
 	m_app->getAPI()->setFaceCulling(GraphicsAPI::NO_CULLING);
 
 	auto* phongShader = &m_app->getResourceManager().getShaderSet<PhongMaterialShader>();
-	auto* pbrShader = &m_app->getResourceManager().getShaderSet<PBRMaterialShader>();
 	auto* outlineShader = &m_app->getResourceManager().getShaderSet<OutlineShader>();
+	auto* pbrShader = &m_app->getResourceManager().getShaderSet<PBRMaterialShader>();
+	
+	m_model1 = std::make_shared<Model>(mesh1Data, phongShader, "Model1");
+	m_model2 = std::make_shared<Model>(mesh2Data, phongShader, "Model1");
 
 	// Create/load models
 	auto planeModel = ModelFactory::PlaneModel::Create(glm::vec2(50.f), pbrShader, glm::vec2(30.0f));
@@ -63,20 +101,22 @@ ModelViewerState::ModelViewerState(StateStack& stack)
 	// Create entities
 	{
 		m_mesh1 = Entity::Create("Mesh1");
-		m_mesh1->addComponent<ModelComponent>(cubeModel);
+		m_mesh1->addComponent<ModelComponent>(m_model1);
 		auto transformComp = m_mesh1->addComponent<TransformComponent>();
-		transformComp->setTranslation(2.f, 1.f, 0.f);
-		auto mat = m_mesh1->addComponent<MaterialComponent<PBRMaterial>>();
+		transformComp->setScale(10.f);
+		auto mat = m_mesh1->addComponent<MaterialComponent<PhongMaterial>>();
 		mat->get()->setColor(glm::vec4(0.2f, 0.8f, 0.2f, 1.0f));
+		mat->get()->getPhongSettings().ka = 2.0f;
 		m_scene.addEntity(m_mesh1);
 	}
 	{
 		m_mesh2 = Entity::Create("Mesh2");
-		m_mesh2->addComponent<ModelComponent>(cubeModel);
+		m_mesh2->addComponent<ModelComponent>(m_model2);
 		auto transformComp = m_mesh2->addComponent<TransformComponent>();
-		transformComp->setTranslation(-2.f, 1.f, 0.f);
-		auto mat = m_mesh2->addComponent<MaterialComponent<PBRMaterial>>();
+		transformComp->setScale(10.f);
+		auto mat = m_mesh2->addComponent<MaterialComponent<PhongMaterial>>();
 		mat->get()->setColor(glm::vec4(0.2f, 0.2f, 0.8f, 1.0f));
+		mat->get()->getPhongSettings().ka = 2.0f;
 		m_scene.addEntity(m_mesh2);
 	}
 	// Lights

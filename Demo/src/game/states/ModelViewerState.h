@@ -27,6 +27,10 @@ private:
 	// Camera
 	PerspectiveCamera m_cam;
 	FlyingCameraController m_camController;
+	
+	Model::SPtr m_model1;
+	Model::SPtr m_model2;
+
 	Entity::SPtr m_mesh1;
 	Entity::SPtr m_mesh2;
 	std::vector<Entity::SPtr> m_transformTestEntities;
