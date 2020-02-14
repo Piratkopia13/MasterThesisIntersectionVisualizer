@@ -10,6 +10,7 @@
 #include <atlstr.h>
 
 #include "../../TFPredictor.h"
+#include "../../SATIntersection.h"
 
 ModelViewerState::ModelViewerState(StateStack& stack)
 	: State(stack)
@@ -26,6 +27,10 @@ ModelViewerState::ModelViewerState(StateStack& stack)
 		Logger::Log("\tValue: " + std::to_string(predictor.getLastPredictionValue()));
 		Logger::Log("\tTime " + std::to_string(predictor.getLastPredictionTime()) + "ms");
 
+		SATIntersection satIntersector(200);
+		bool actualIntersection = satIntersector.testIntersection("networks/true.txt");
+		Logger::Log("Actual intersection: " + std::to_string(actualIntersection));
+		Logger::Log("\tTime " + std::to_string(satIntersector.getLastIntersectionTime()) + "ms");
 
 	}
 	
@@ -204,4 +209,5 @@ std::vector<glm::vec3> ModelViewerState::convertMeshToVertexVector(const Mesh& m
 			returnVector[i] = glm::vec3(transform.getMatrix() * glm::vec4(meshData.positions[i].vec, 1.0));
 		}
 	}
+	return returnVector;
 }
