@@ -32,7 +32,7 @@ bool TFPredictor::predict(const std::string& inputFilePath) {
 }
 
 bool TFPredictor::predict(void* data, unsigned int dataSize) {
-	auto startTime = std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now()).time_since_epoch().count();
+	double startTime = std::chrono::time_point_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now()).time_since_epoch().count() / 1000.0;
 
 	auto tensor = createTensor(data, dataSize, m_inputShape);
 
@@ -54,7 +54,7 @@ bool TFPredictor::predict(void* data, unsigned int dataSize) {
 		__debugbreak();
 	}
 
-	auto endTime = std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now()).time_since_epoch().count();
+	double endTime = std::chrono::time_point_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now()).time_since_epoch().count() / 1000.0;
 	m_lastPredictionTime = endTime - startTime;
 
 	m_lastPrediction = ((const float*)TF_TensorData(&output))[0];
@@ -65,7 +65,7 @@ float TFPredictor::getLastPredictionValue() const {
 	return m_lastPrediction;
 }
 
-long long TFPredictor::getLastPredictionTime() const {
+double TFPredictor::getLastPredictionTime() const {
 	return m_lastPredictionTime;
 }
 

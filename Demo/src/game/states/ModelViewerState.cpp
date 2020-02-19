@@ -20,12 +20,11 @@ ModelViewerState::ModelViewerState(StateStack& stack)
 	SAIL_PROFILE_FUNCTION();
 
 	std::string inputFilePath = "networks/false.txt";
-	unsigned int trianglesPerMesh = 200;
-	{
-		//TFPredictor predictor("networks/freezed_model_tf2.pb", "dense_input", "result_1/Sigmoid", trianglesPerMesh); // asd
-		//TFPredictor predictor("networks/frozen_model_10k.pb", "input_meshes", "result/Sigmoid", trianglesPerMesh); // asd
-		TFPredictor predictor("networks/frozen_model_big_boy.pb", "input_meshes_4", "result_4/Sigmoid", trianglesPerMesh); // Great accuracy, terrible speed (1024 nodes first layer)
-		//TFPredictor predictor("networks/frozen_model_less_big_boy.pb", "input_meshes_5", "result_5/Sigmoid", trianglesPerMesh); // (256 nodes first layer)		
+	m_trianglesPerMesh = 200;
+	//TFPredictor predictor("networks/freezed_model_tf2.pb", "dense_input", "result_1/Sigmoid", trianglesPerMesh); // asd
+	//TFPredictor predictor("networks/frozen_model_10k.pb", "input_meshes", "result/Sigmoid", trianglesPerMesh); // asd
+	//TFPredictor predictor("networks/frozen_model_big_boy.pb", "input_meshes_4", "result_4/Sigmoid", trianglesPerMesh); // Great accuracy, terrible speed (1024 nodes first layer)
+	//TFPredictor predictor("networks/frozen_model_less_big_boy.pb", "input_meshes_5", "result_5/Sigmoid", trianglesPerMesh); // (256 nodes first layer)		
 
 	m_predictor = SAIL_NEW TFPredictor("networks/frozen_model_big_boy.pb", "input_meshes_4", "result_4/Sigmoid", m_trianglesPerMesh); // Great accuracy, terrible speed (1024 nodes first layer)
 	//m_predictor = SAIL_NEW TFPredictor("networks/frozen_model_less_big_boy.pb", "input_meshes_5", "result_5/Sigmoid", m_trianglesPerMesh); // (256 nodes first layer)		
@@ -161,8 +160,8 @@ bool ModelViewerState::processInput(float dt) {
 
 			bool prediction = m_predictor->predict(vertexData.data(), vertexData.size() * sizeof(glm::vec3));
 			Logger::Log("Prediction: " + std::to_string(prediction));
-			std::cout << "\tValue " << std::setprecision(15) << predictor.getLastPredictionValue() << std::endl;
-			Logger::Log("\tTime " + std::to_string(predictor.getLastPredictionTime()) + "ms");
+			std::cout << "\tValue " << std::setprecision(15) << m_predictor->getLastPredictionValue() << std::endl;
+			Logger::Log("\tTime " + std::to_string(m_predictor->getLastPredictionTime()) + "ms");
 
 			
 			bool actualIntersection = m_satIntersector->testIntersection(vertexData.data(), vertexData.size() * sizeof(glm::vec3));
