@@ -1,5 +1,6 @@
 #include "ModelViewerState.h"
 #include "imgui.h"
+#include <iomanip>
 
 #if defined(_SAIL_DX12) && defined(_DEBUG)
 #include "API/DX12/DX12API.h"
@@ -21,12 +22,14 @@ ModelViewerState::ModelViewerState(StateStack& stack)
 	std::string inputFilePath = "networks/false.txt";
 	unsigned int trianglesPerMesh = 200;
 	{
+		//TFPredictor predictor("networks/freezed_model_tf2.pb", "dense_input", "result_1/Sigmoid", trianglesPerMesh); // asd
+		//TFPredictor predictor("networks/frozen_model_10k.pb", "input_meshes", "result/Sigmoid", trianglesPerMesh); // asd
 		TFPredictor predictor("networks/frozen_model_big_boy.pb", "input_meshes_4", "result_4/Sigmoid", trianglesPerMesh); // Great accuracy, terrible speed (1024 nodes first layer)
 		//TFPredictor predictor("networks/frozen_model_less_big_boy.pb", "input_meshes_5", "result_5/Sigmoid", trianglesPerMesh); // (256 nodes first layer)		
 
 		bool prediction = predictor.predict(inputFilePath);
 		Logger::Log("Prediction: " + std::to_string(prediction));
-		Logger::Log("\tValue: " + std::to_string(predictor.getLastPredictionValue()));
+		std::cout << "\tValue " << std::setprecision(15) << predictor.getLastPredictionValue() << std::endl;
 		Logger::Log("\tTime " + std::to_string(predictor.getLastPredictionTime()) + "ms");
 
 		SATIntersection satIntersector(trianglesPerMesh);
