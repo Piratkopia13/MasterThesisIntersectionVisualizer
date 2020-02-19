@@ -4,6 +4,9 @@
 #include "../editor/EntitiesGui.h"
 #include "../editor/EditorGui.h"
 
+class TFPredictor;
+class SATIntersection;
+
 class ModelViewerState : public State {
 public:
 	ModelViewerState(StateStack& stack);
@@ -37,6 +40,11 @@ private:
 
 	Scene m_scene;
 
+	TFPredictor* m_predictor;
+	SATIntersection* m_satIntersector;
+	unsigned int m_trianglesPerMesh;
+
 private:
 	std::vector<glm::vec3> convertMeshToVertexVector(const Mesh& mesh, Transform& transform);
+	void normalizeMeshes(std::vector<glm::vec3>& mesh1, std::vector<glm::vec3>& mesh2);
 };

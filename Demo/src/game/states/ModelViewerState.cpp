@@ -27,24 +27,17 @@ ModelViewerState::ModelViewerState(StateStack& stack)
 		TFPredictor predictor("networks/frozen_model_big_boy.pb", "input_meshes_4", "result_4/Sigmoid", trianglesPerMesh); // Great accuracy, terrible speed (1024 nodes first layer)
 		//TFPredictor predictor("networks/frozen_model_less_big_boy.pb", "input_meshes_5", "result_5/Sigmoid", trianglesPerMesh); // (256 nodes first layer)		
 
-		bool prediction = predictor.predict(inputFilePath);
-		Logger::Log("Prediction: " + std::to_string(prediction));
-		std::cout << "\tValue " << std::setprecision(15) << predictor.getLastPredictionValue() << std::endl;
-		Logger::Log("\tTime " + std::to_string(predictor.getLastPredictionTime()) + "ms");
+	m_predictor = SAIL_NEW TFPredictor("networks/frozen_model_big_boy.pb", "input_meshes_4", "result_4/Sigmoid", m_trianglesPerMesh); // Great accuracy, terrible speed (1024 nodes first layer)
+	//m_predictor = SAIL_NEW TFPredictor("networks/frozen_model_less_big_boy.pb", "input_meshes_5", "result_5/Sigmoid", m_trianglesPerMesh); // (256 nodes first layer)		
 
-		SATIntersection satIntersector(trianglesPerMesh);
-		bool actualIntersection = satIntersector.testIntersection(inputFilePath);
-		Logger::Log("Actual intersection: " + std::to_string(actualIntersection));
-		Logger::Log("\tTime " + std::to_string(satIntersector.getLastIntersectionTime()) + "ms");
-
-	}
+	m_satIntersector = SAIL_NEW SATIntersection(m_trianglesPerMesh);
 
 	// Create model from input file
 	Mesh::Data mesh1Data;
 	Mesh::Data mesh2Data;
 	{
-		Mesh::vec3* vertices1 = SAIL_NEW Mesh::vec3[trianglesPerMesh * 3];
-		Mesh::vec3* vertices2 = SAIL_NEW Mesh::vec3[trianglesPerMesh * 3];
+		Mesh::vec3* vertices1 = SAIL_NEW Mesh::vec3[m_trianglesPerMesh * 3];
+		Mesh::vec3* vertices2 = SAIL_NEW Mesh::vec3[m_trianglesPerMesh * 3];
 
 		std::string line;
 		std::ifstream infile(inputFilePath);
@@ -57,19 +50,20 @@ ModelViewerState::ModelViewerState(StateStack& stack)
 				vert.vec.x = x;
 				iss >> vert.vec.y;
 				iss >> vert.vec.z;
-				if (numVertices < trianglesPerMesh * 3) {
+				if (numVertices < m_trianglesPerMesh * 3) {
 					vertices1[numVertices] = vert;
-				} else {
-					vertices2[numVertices - trianglesPerMesh * 3] = vert;
+				}
+				else {
+					vertices2[numVertices - m_trianglesPerMesh * 3] = vert;
 				}
 				numVertices++;
 			}
 		};
 
-		mesh1Data.numVertices = trianglesPerMesh * 3;
+		mesh1Data.numVertices = m_trianglesPerMesh * 3;
 		mesh1Data.positions = vertices1;
 
-		mesh2Data.numVertices = trianglesPerMesh * 3;
+		mesh2Data.numVertices = m_trianglesPerMesh * 3;
 		mesh2Data.positions = vertices2;
 	}
 	
@@ -136,6 +130,8 @@ ModelViewerState::ModelViewerState(StateStack& stack)
 }
 
 ModelViewerState::~ModelViewerState() {
+	delete m_predictor;
+	delete m_satIntersector;
 }
 
 // Process input for the state
@@ -151,6 +147,29 @@ bool ModelViewerState::processInput(float dt) {
 		m_app->getResourceManager().reloadShader<PBRMaterialShader>();
 		m_app->getResourceManager().reloadShader<CubemapShader>();
 		m_app->getResourceManager().reloadShader<OutlineShader>();
+	}
+
+	if (Input::WasKeyJustPressed(SAIL_KEY_B)) {
+		{
+			std::vector<glm::vec3> mesh1Data = convertMeshToVertexVector(*m_mesh1->getComponent<ModelComponent>()->getModel()->getMesh(0), *m_mesh1->getComponent<TransformComponent>());
+			std::vector<glm::vec3> mesh2Data = convertMeshToVertexVector(*m_mesh2->getComponent<ModelComponent>()->getModel()->getMesh(0), *m_mesh2->getComponent<TransformComponent>());
+
+			normalizeMeshes(mesh1Data, mesh2Data);
+
+			std::vector<glm::vec3> vertexData = mesh1Data;
+			vertexData.insert(vertexData.end(), mesh2Data.begin(), mesh2Data.end());
+
+			bool prediction = m_predictor->predict(vertexData.data(), vertexData.size() * sizeof(glm::vec3));
+			Logger::Log("Prediction: " + std::to_string(prediction));
+			std::cout << "\tValue " << std::setprecision(15) << predictor.getLastPredictionValue() << std::endl;
+			Logger::Log("\tTime " + std::to_string(predictor.getLastPredictionTime()) + "ms");
+
+			
+			bool actualIntersection = m_satIntersector->testIntersection(vertexData.data(), vertexData.size() * sizeof(glm::vec3));
+			Logger::Log("Actual intersection: " + std::to_string(actualIntersection));
+			Logger::Log("\tTime " + std::to_string(m_satIntersector->getLastIntersectionTime()) + "ms\n");
+
+		}
 	}
 
 	return true;
@@ -253,4 +272,45 @@ std::vector<glm::vec3> ModelViewerState::convertMeshToVertexVector(const Mesh& m
 		}
 	}
 	return returnVector;
+}
+
+void ModelViewerState::normalizeMeshes(std::vector<glm::vec3>& mesh1, std::vector<glm::vec3>& mesh2) {
+	// Find biggestand smallest values along each axis
+	glm::vec3 minVals = mesh1[0];
+	glm::vec3 maxVals = mesh1[0];
+
+	size_t mesh1Size = mesh1.size();
+
+	for (size_t i = 0; i < mesh1Size; i++) {
+		for (unsigned int j = 0; j < 3; j++) {
+			if (mesh1[i][j] < minVals[j]) {
+				minVals[j] = mesh1[i][j];
+			}
+			if (mesh1[i][j] > maxVals[j]) {
+				maxVals[j] = mesh1[i][j];
+			}
+		}
+	}
+		
+	size_t mesh2Size = mesh2.size();
+
+	for (size_t i = 0; i < mesh2Size; i++) {
+		for (unsigned int j = 0; j < 3; j++) {
+			if (mesh2[i][j] < minVals[j]) {
+				minVals[j] = mesh2[i][j];
+			}
+			if (mesh2[i][j] > maxVals[j]) {
+				maxVals[j] = mesh2[i][j];
+			}
+		}
+	}
+
+	// Use min and max values to normalize the data
+	for (size_t i = 0; i < mesh1Size; i++) {
+		mesh1[i] = { (mesh1[i][0] - minVals[0]) / (maxVals[0] - minVals[0]), (mesh1[i][1] - minVals[1]) / (maxVals[1] - minVals[1]), (mesh1[i][2] - minVals[2]) / (maxVals[2] - minVals[2]) };
+	}
+
+	for (size_t i = 0; i < mesh2Size; i++) {
+		mesh2[i] = { (mesh2[i][0] - minVals[0]) / (maxVals[0] - minVals[0]), (mesh2[i][1] - minVals[1]) / (maxVals[1] - minVals[1]), (mesh2[i][2] - minVals[2]) / (maxVals[2] - minVals[2]) };
+	}
 }
