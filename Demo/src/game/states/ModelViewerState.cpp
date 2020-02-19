@@ -21,12 +21,12 @@ ModelViewerState::ModelViewerState(StateStack& stack)
 
 	std::string inputFilePath = "networks/false.txt";
 	m_trianglesPerMesh = 200;
-	//TFPredictor predictor("networks/freezed_model_tf2.pb", "dense_input", "result_1/Sigmoid", trianglesPerMesh); // asd
+	m_predictor = SAIL_NEW TFPredictor("networks/maybe_good.pb", "dense_input", "result_1/Sigmoid", m_trianglesPerMesh);
 	//TFPredictor predictor("networks/frozen_model_10k.pb", "input_meshes", "result/Sigmoid", trianglesPerMesh); // asd
 	//TFPredictor predictor("networks/frozen_model_big_boy.pb", "input_meshes_4", "result_4/Sigmoid", trianglesPerMesh); // Great accuracy, terrible speed (1024 nodes first layer)
 	//TFPredictor predictor("networks/frozen_model_less_big_boy.pb", "input_meshes_5", "result_5/Sigmoid", trianglesPerMesh); // (256 nodes first layer)		
 
-	m_predictor = SAIL_NEW TFPredictor("networks/frozen_model_big_boy.pb", "input_meshes_4", "result_4/Sigmoid", m_trianglesPerMesh); // Great accuracy, terrible speed (1024 nodes first layer)
+	//m_predictor = SAIL_NEW TFPredictor("networks/frozen_model_big_boy.pb", "input_meshes_4", "result_4/Sigmoid", m_trianglesPerMesh); // Great accuracy, terrible speed (1024 nodes first layer)
 	//m_predictor = SAIL_NEW TFPredictor("networks/frozen_model_less_big_boy.pb", "input_meshes_5", "result_5/Sigmoid", m_trianglesPerMesh); // (256 nodes first layer)		
 
 	m_satIntersector = SAIL_NEW SATIntersection(m_trianglesPerMesh);
@@ -245,9 +245,45 @@ bool ModelViewerState::renderImgui(float dt) {
 			break;
 		}
 	};
-
 	m_editorGui.render(dt, callback);
 	m_entitiesGui.render(m_scene.getEntites());
+
+	static bool continuous = false;
+	static float timeSinceLastPrediction = 0.f;
+	static bool prediction = false;
+	static bool actualIntersection = false;
+	static bool hasRun = false;
+	static float interval = 0.2f;
+	ImGui::Begin("Intersection predictor");
+	ImGui::Checkbox("Continuous", &continuous);
+	ImGui::SliderFloat("Interval (s)", &interval, 0.f, 2.f);
+	bool btn = ImGui::Button("Do et");
+	if (continuous && timeSinceLastPrediction > interval || btn) {
+
+		std::vector<glm::vec3> mesh1Data = convertMeshToVertexVector(*m_mesh1->getComponent<ModelComponent>()->getModel()->getMesh(0), *m_mesh1->getComponent<TransformComponent>());
+		std::vector<glm::vec3> mesh2Data = convertMeshToVertexVector(*m_mesh2->getComponent<ModelComponent>()->getModel()->getMesh(0), *m_mesh2->getComponent<TransformComponent>());
+
+		normalizeMeshes(mesh1Data, mesh2Data);
+
+		std::vector<glm::vec3> vertexData = mesh1Data;
+		vertexData.insert(vertexData.end(), mesh2Data.begin(), mesh2Data.end());
+		prediction = m_predictor->predict(vertexData.data(), vertexData.size() * sizeof(glm::vec3));
+		actualIntersection = m_satIntersector->testIntersection(vertexData.data(), vertexData.size() * sizeof(glm::vec3));
+
+		timeSinceLastPrediction = 0.f;
+		hasRun = true;
+	}
+	if (hasRun) {
+		ImGui::Text("Prediction: %i", prediction);
+		ImGui::Text("Value: %.15f", m_predictor->getLastPredictionValue());
+		ImGui::Text("Time: %.3f ms", m_predictor->getLastPredictionTime());
+		ImGui::Separator();
+
+		ImGui::Text("Actual intersection: %i", actualIntersection);
+		ImGui::Text("Time: %.3f ms", m_satIntersector->getLastIntersectionTime());
+	}
+	timeSinceLastPrediction += dt;
+	ImGui::End();
 	
 	return false;
 }
