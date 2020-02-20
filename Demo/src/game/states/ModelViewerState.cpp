@@ -19,9 +19,9 @@ ModelViewerState::ModelViewerState(StateStack& stack)
 	, m_camController(&m_cam) {
 	SAIL_PROFILE_FUNCTION();
 
-	std::string inputFilePath = "networks/false.txt";
+	std::string inputFilePath = "networks/sphere_true.txt";
 	m_trianglesPerMesh = 200;
-	m_predictor = SAIL_NEW TFPredictor("networks/maybe_good.pb", "dense_input", "result_1/Sigmoid", m_trianglesPerMesh);
+	m_predictor = SAIL_NEW TFPredictor("networks/a.pb", "dense_input_1", "result_1/Sigmoid", m_trianglesPerMesh);
 	//TFPredictor predictor("networks/frozen_model_10k.pb", "input_meshes", "result/Sigmoid", trianglesPerMesh); // asd
 	//TFPredictor predictor("networks/frozen_model_big_boy.pb", "input_meshes_4", "result_4/Sigmoid", trianglesPerMesh); // Great accuracy, terrible speed (1024 nodes first layer)
 	//TFPredictor predictor("networks/frozen_model_less_big_boy.pb", "input_meshes_5", "result_5/Sigmoid", trianglesPerMesh); // (256 nodes first layer)		
@@ -155,6 +155,9 @@ bool ModelViewerState::processInput(float dt) {
 
 			normalizeMeshes(mesh1Data, mesh2Data);
 
+			std::cout << "Mesh 1 data balance ok? " << testDataBalance(mesh1Data) << '\n';
+			std::cout << "Mesh 2 data balance ok? " << testDataBalance(mesh2Data) << '\n';
+
 			std::vector<glm::vec3> vertexData = mesh1Data;
 			vertexData.insert(vertexData.end(), mesh2Data.begin(), mesh2Data.end());
 
@@ -274,6 +277,24 @@ bool ModelViewerState::renderImgui(float dt) {
 		hasRun = true;
 	}
 	if (hasRun) {
+		bool truePositive = prediction && actualIntersection;
+		bool falsePositive = !prediction && actualIntersection;
+		bool falseNegative = prediction && !actualIntersection;
+		bool trueNegative = !prediction && !actualIntersection;
+
+		glm::vec4 color1 = glm::vec4(0.8f, 0.2f, 0.2f, 1.0f);
+		glm::vec4 color2 = glm::vec4(0.8f, 0.2f, 0.2f, 1.0f);
+		if (truePositive || trueNegative) {
+			color1 = glm::vec4(0.2f, 0.8f, 0.2f, 1.0f);
+			color2 = glm::vec4(0.2f, 0.5f, 0.2f, 1.0f);
+		} else {
+			color1 = glm::vec4(0.8f, 0.8f, 0.2f, 1.0f);
+			color2 = glm::vec4(0.5f, 0.5f, 0.2f, 1.0f);
+		}
+
+		m_mesh1->getComponent<MaterialComponent<PhongMaterial>>()->get()->setColor(color1);
+		m_mesh2->getComponent<MaterialComponent<PhongMaterial>>()->get()->setColor(color2);
+
 		ImGui::Text("Prediction: %i", prediction);
 		ImGui::Text("Value: %.15f", m_predictor->getLastPredictionValue());
 		ImGui::Text("Time: %.3f ms", m_predictor->getLastPredictionTime());
@@ -281,6 +302,8 @@ bool ModelViewerState::renderImgui(float dt) {
 
 		ImGui::Text("Actual intersection: %i", actualIntersection);
 		ImGui::Text("Time: %.3f ms", m_satIntersector->getLastIntersectionTime());
+		ImGui::Separator();
+		ImGui::Text((truePositive) ? "True positive" : (falsePositive) ? "False positive" : (falseNegative) ? "False negative" : "True negative");
 	}
 	timeSinceLastPrediction += dt;
 	ImGui::End();
@@ -340,12 +363,35 @@ void ModelViewerState::normalizeMeshes(std::vector<glm::vec3>& mesh1, std::vecto
 		}
 	}
 
+	bool negativeNormalization = true;
 	// Use min and max values to normalize the data
 	for (size_t i = 0; i < mesh1Size; i++) {
 		mesh1[i] = { (mesh1[i][0] - minVals[0]) / (maxVals[0] - minVals[0]), (mesh1[i][1] - minVals[1]) / (maxVals[1] - minVals[1]), (mesh1[i][2] - minVals[2]) / (maxVals[2] - minVals[2]) };
+		if (negativeNormalization) {
+			mesh1[i][0] = mesh1[i][0] * 2.f - 1.f;
+			mesh1[i][1] = mesh1[i][1] * 2.f - 1.f;
+			mesh1[i][2] = mesh1[i][2] * 2.f - 1.f;
+		}
 	}
 
 	for (size_t i = 0; i < mesh2Size; i++) {
 		mesh2[i] = { (mesh2[i][0] - minVals[0]) / (maxVals[0] - minVals[0]), (mesh2[i][1] - minVals[1]) / (maxVals[1] - minVals[1]), (mesh2[i][2] - minVals[2]) / (maxVals[2] - minVals[2]) };
+		if (negativeNormalization) {
+			mesh2[i][0] = mesh2[i][0] * 2.f - 1.f;
+			mesh2[i][1] = mesh2[i][1] * 2.f - 1.f;
+			mesh2[i][2] = mesh2[i][2] * 2.f - 1.f;
+		}
 	}
+}
+
+bool ModelViewerState::testDataBalance(std::vector<glm::vec3>& mesh) {
+	for (auto& v : mesh) {
+		for (unsigned int i = 0; i < 3; i++) {
+			if (v[i] < -1.f || v[i] > 1.f) {
+				assert(false);
+				return false;
+			}
+		}
+	}
+	return true;
 }

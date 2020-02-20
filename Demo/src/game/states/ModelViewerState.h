@@ -47,4 +47,5 @@ private:
 private:
 	std::vector<glm::vec3> convertMeshToVertexVector(const Mesh& mesh, Transform& transform);
 	void normalizeMeshes(std::vector<glm::vec3>& mesh1, std::vector<glm::vec3>& mesh2);
+	bool testDataBalance(std::vector<glm::vec3>& mesh);
 };
