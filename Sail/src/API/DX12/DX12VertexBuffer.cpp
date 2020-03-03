@@ -131,7 +131,7 @@ bool DX12VertexBuffer::init(ID3D12GraphicsCommandList4* cmdList) {
 		DX12Utils::SetResourceUAVBarrier(cmdList, m_defaultVertexBuffers[i].Get());
 
 		// Signal is only required for the last buffer, since both will be uploaded when the last one is
-		if (!m_allowUpdates && i == 1) {
+		if (!m_allowUpdates && i == numSwapBuffers - 1) {
 			auto type = cmdList->GetType();
 			m_queueUsedForUpload = (type == D3D12_COMMAND_LIST_TYPE_DIRECT) ? m_context->getDirectQueue() : nullptr; // TODO: add support for other command list types
 			// Schedule a signal to be called directly after this command list has executed
