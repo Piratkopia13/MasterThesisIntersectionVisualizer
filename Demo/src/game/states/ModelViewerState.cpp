@@ -19,9 +19,11 @@ ModelViewerState::ModelViewerState(StateStack& stack)
 	, m_camController(&m_cam) {
 	SAIL_PROFILE_FUNCTION();
 
-	std::string inputFilePath = "networks/sphere_true.txt";
-	m_trianglesPerMesh = 200;
-	m_predictor = SAIL_NEW TFPredictor("networks/a.pb", "dense_input_1", "result_1/Sigmoid", m_trianglesPerMesh);
+	std::string inputFilePath = "networks/planets_50_tri_true.txt";
+	m_trianglesPerMesh = 50;
+	
+	m_predictor = SAIL_NEW TFPredictor("networks/freezed_model_heatmap_test.pb", "dense_input_1", "result_1/Sigmoid", m_trianglesPerMesh);
+	//m_predictor = SAIL_NEW TFPredictor("networks/importance_sampling_test_6.pb", "dense_input_1", "result_1/Sigmoid", m_trianglesPerMesh); // Best so far (trained on low standard deviation of normal distribution (close intersections))
 	//TFPredictor predictor("networks/frozen_model_10k.pb", "input_meshes", "result/Sigmoid", trianglesPerMesh); // asd
 	//TFPredictor predictor("networks/frozen_model_big_boy.pb", "input_meshes_4", "result_4/Sigmoid", trianglesPerMesh); // Great accuracy, terrible speed (1024 nodes first layer)
 	//TFPredictor predictor("networks/frozen_model_less_big_boy.pb", "input_meshes_5", "result_5/Sigmoid", trianglesPerMesh); // (256 nodes first layer)		
@@ -36,7 +38,9 @@ ModelViewerState::ModelViewerState(StateStack& stack)
 	Mesh::Data mesh2Data;
 	{
 		Mesh::vec3* vertices1 = SAIL_NEW Mesh::vec3[m_trianglesPerMesh * 3];
+		Mesh::vec3* normals1 = SAIL_NEW Mesh::vec3[m_trianglesPerMesh * 3];
 		Mesh::vec3* vertices2 = SAIL_NEW Mesh::vec3[m_trianglesPerMesh * 3];
+		Mesh::vec3* normals2 = SAIL_NEW Mesh::vec3[m_trianglesPerMesh * 3];
 
 		std::string line;
 		std::ifstream infile(inputFilePath);
@@ -59,11 +63,42 @@ ModelViewerState::ModelViewerState(StateStack& stack)
 			}
 		};
 
+		for (unsigned int tri = 0; tri < m_trianglesPerMesh; tri++) {
+			// Vertices 1
+			{
+				Mesh::vec3& vert1 = vertices1[tri * 3 + 0];
+				Mesh::vec3& vert2 = vertices1[tri * 3 + 1];
+				Mesh::vec3& vert3 = vertices1[tri * 3 + 2];
+
+				glm::vec3 normal = glm::cross(vert2.vec - vert1.vec, vert3.vec - vert1.vec);
+				normal = glm::normalize(normal);
+
+				normals1[tri * 3 + 0] = Mesh::vec3(normal.x, normal.y, normal.z);
+				normals1[tri * 3 + 1] = Mesh::vec3(normal.x, normal.y, normal.z);
+				normals1[tri * 3 + 2] = Mesh::vec3(normal.x, normal.y, normal.z);
+			}
+			// Vertices 2
+			{
+				Mesh::vec3& vert1 = vertices2[tri * 3 + 0];
+				Mesh::vec3& vert2 = vertices2[tri * 3 + 1];
+				Mesh::vec3& vert3 = vertices2[tri * 3 + 2];
+
+				glm::vec3 normal = glm::cross(vert2.vec - vert1.vec, vert3.vec - vert1.vec);
+				normal = glm::normalize(normal);
+
+				normals2[tri * 3 + 0] = Mesh::vec3(normal.x, normal.y, normal.z);
+				normals2[tri * 3 + 1] = Mesh::vec3(normal.x, normal.y, normal.z);
+				normals2[tri * 3 + 2] = Mesh::vec3(normal.x, normal.y, normal.z);
+			}
+		}
+
 		mesh1Data.numVertices = m_trianglesPerMesh * 3;
 		mesh1Data.positions = vertices1;
+		mesh1Data.normals = normals1;
 
 		mesh2Data.numVertices = m_trianglesPerMesh * 3;
 		mesh2Data.positions = vertices2;
+		mesh2Data.normals = normals2;
 	}
 	
 	// Get the Application instance

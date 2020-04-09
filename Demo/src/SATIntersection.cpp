@@ -122,10 +122,7 @@ bool SATIntersection::projectionOverlapTest(glm::vec3& testVec, const glm::vec3 
 		}
 	}
 
-	if (max2 > min1&& max1 > min2) {
-		return true;
-	}
-	return false;
+	return max2 >= min1 && max1 >= min2;
 }
 
 bool SATIntersection::SAT(const glm::vec3 tri1[3], const glm::vec3 tri2[3], int earlyExitLevel) {
