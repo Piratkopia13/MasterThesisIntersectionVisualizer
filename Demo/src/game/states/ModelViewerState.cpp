@@ -29,7 +29,7 @@ ModelViewerState::ModelViewerState(StateStack& stack)
 	//m_predictor = SAIL_NEW TFPredictor("networks/frozen_model_big_boy.pb", "input_meshes_4", "result_4/Sigmoid", m_trianglesPerMesh); // Great accuracy, terrible speed (1024 nodes first layer)
 	//m_predictor = SAIL_NEW TFPredictor("networks/frozen_model_less_big_boy.pb", "input_meshes_5", "result_5/Sigmoid", m_trianglesPerMesh); // (256 nodes first layer)		
 
-	m_satIntersector = SAIL_NEW SATIntersection(m_trianglesPerMesh, 0);
+	m_satIntersector = SAIL_NEW SATIntersection(m_trianglesPerMesh, 2);
 
 	// Create model from input file
 	Mesh::Data mesh1Data;

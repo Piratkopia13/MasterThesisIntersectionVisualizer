@@ -1,5 +1,6 @@
 #include "SATIntersection.h"
 
+#include "Sail.h"
 #include <vector>
 #include <fstream>
 #include <sstream>
@@ -13,6 +14,8 @@ SATIntersection::SATIntersection(unsigned int trianglesPerMesh, int earlyExitLev
 	m_lastIntersectionResult = false;
 
 
+	m_numThreads = std::ceil(m_trianglesPerMesh / 10.0f);
+	m_threadPool = std::unique_ptr<ctpl::thread_pool>(SAIL_NEW ctpl::thread_pool(m_numThreads));
 }
 
 SATIntersection::~SATIntersection() {
@@ -145,10 +148,28 @@ bool SATIntersection::SAT(const glm::vec3 tri1[3], const glm::vec3 tri2[3], int 
 	return returnValue;
 }
 
-bool SATIntersection::meshVsMeshIntersection(std::vector<glm::vec3> mesh1, std::vector<glm::vec3> mesh2, int earlyExitLevel) {
+bool SATIntersection::meshVsMeshIntersection(std::vector<glm::vec3> &mesh1, std::vector<glm::vec3> &mesh2, int earlyExitLevel) {
 	bool returnValue = false;
 
-	for (size_t i = 0; i < mesh1.size(); i += 3) {
+	unsigned int trianglesPerThread = std::ceil(m_trianglesPerMesh / m_numThreads);
+	std::vector<std::future<bool>> futures;
+	for (int i = 0; i < m_numThreads; i++) {
+		futures.push_back(m_threadPool->push(meshVsMeshThread, mesh1, mesh2, trianglesPerThread * i, glm::min(trianglesPerThread * (i + 1), m_trianglesPerMesh), earlyExitLevel));
+	}
+
+	for (int i = 0; i < m_numThreads; i++) {
+		if (futures[i].get()) {
+			returnValue = true;
+		}
+	}
+
+	return returnValue;
+}
+
+bool SATIntersection::meshVsMeshThread(int id, std::vector<glm::vec3> &mesh1, std::vector<glm::vec3> &mesh2, size_t startTriangle, size_t stopTriangle, int earlyExitLevel) {
+	bool returnValue = false;
+
+	for (size_t i = startTriangle * 3; i < stopTriangle * 3; i += 3) {
 		glm::vec3 tri1[3] = { mesh1[i], mesh1[i + 1], mesh1[i + 2] };
 		for (size_t j = 0; j < mesh2.size(); j += 3) {
 			glm::vec3 tri2[3] = { mesh2[j], mesh2[j + 1], mesh2[j + 2] };
