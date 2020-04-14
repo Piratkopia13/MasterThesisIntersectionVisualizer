@@ -108,6 +108,37 @@ public:
     TF_Output inputs, outputs;
 };
 
+
+
+std::string GPUDeviceName(TF_Session* session) {
+    std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(
+        TF_NewStatus(), TF_DeleteStatus);
+    TF_Status* s = status.get();
+    std::unique_ptr<TF_DeviceList, decltype(&TF_DeleteDeviceList)> list(
+        TF_SessionListDevices(session, s), TF_DeleteDeviceList);
+    TF_DeviceList* device_list = list.get();
+    if (TF_OK != TF_GetCode(s))
+        std::cout << TF_Message(s) << '\n';
+    const int num_devices = TF_DeviceListCount(device_list);
+    std::cout << "There are " << num_devices << " devices.";
+    for (int i = 0; i < num_devices; ++i) {
+        const char* device_name = TF_DeviceListName(device_list, i, s);
+        if (TF_OK != TF_GetCode(s))
+            std::cout << TF_Message(s) << '\n';
+        const char* device_type = TF_DeviceListType(device_list, i, s);
+        if (TF_OK != TF_GetCode(s))
+            std::cout << TF_Message(s) << '\n';
+        std::cout << "Device " << i << " has name " << device_name << ", type "
+            << device_type;
+        /*if (std::string(device_type) == DEVICE_GPU) {
+            return device_name;
+        }*/
+    }
+    // No GPU device found.
+    return "";
+}
+
+
 /**
  * Load a GraphDef from a provided file.
  * @param filename: The file containing the protobuf encoded GraphDef
@@ -144,8 +175,29 @@ MySession *my_model_load(const char *filename, const char *input_name, const cha
 
     auto session = std::make_unique<MySession>();
     {
-        auto opts = tf_obj_unique_ptr(TF_NewSessionOptions());
+        TF_SessionOptions* sessionOpts = TF_NewSessionOptions();
+        
+        //const std::string configText = "introa_op_parallelism_threads: 4";
+        //std::string configText = "device_count: { 'CPU' : 1, 'GPU' : 0 }";
+            /*allow_soft_placement = True, \
+            log_device_placement = False \
+            ";*/
+
+        //uint8_t config[11] = { '0xa', '0x7', '0xa', '0x3', '0x47', '0x50', '0x55', '0x10', '0x0', '0x40', '0x1' };
+        uint8_t config[15] = { '0xa', '0x7', '0xa', '0x3', '0x47', '0x50', '0x55', '0x10', '0x0', '0x10', '0x1', '0x28', '0x1', '0x40', '0x1' };
+
+        CStatus configStatus;
+        TF_SetConfig(sessionOpts, (void*)config, 15, configStatus.ptr);
+        if (configStatus.failure()) {
+            std::cerr << "Failed to config tensorflow:" << '\n';
+            configStatus.dump_error();
+            return nullptr;
+        }
+
+        auto opts = tf_obj_unique_ptr(sessionOpts);
         session->session = tf_obj_unique_ptr(TF_NewSession(graph.get(), opts.get(), status.ptr));
+
+        GPUDeviceName(session->session.get());
     }
 
     if(status.failure()){

@@ -22,7 +22,7 @@ ModelViewerState::ModelViewerState(StateStack& stack)
 	std::string inputFilePath = "networks/planets_50_tri_true.txt";
 	m_trianglesPerMesh = 50;
 	
-	m_predictor = SAIL_NEW TFPredictor("networks/freezed_model_heatmap_test.pb", "dense_input_1", "result_1/Sigmoid", m_trianglesPerMesh);
+	m_predictor = SAIL_NEW TFPredictor("networks/g5.pb", "dense_input_1", "result_1/Sigmoid", m_trianglesPerMesh);
 	//m_predictor = SAIL_NEW TFPredictor("networks/importance_sampling_test_6.pb", "dense_input_1", "result_1/Sigmoid", m_trianglesPerMesh); // Best so far (trained on low standard deviation of normal distribution (close intersections))
 	//TFPredictor predictor("networks/frozen_model_10k.pb", "input_meshes", "result/Sigmoid", trianglesPerMesh); // asd
 	//TFPredictor predictor("networks/frozen_model_big_boy.pb", "input_meshes_4", "result_4/Sigmoid", trianglesPerMesh); // Great accuracy, terrible speed (1024 nodes first layer)

@@ -1,7 +1,7 @@
 #include "GameState.h"
 #include "imgui.h"
 #include "Sail/debug/Instrumentor.h"
-#include "Sail/graphics/material/PhongMaterial.h"
+#include "Sail/graphics/material/PBRMaterial.h"
 
 GameState::GameState(StateStack& stack)
 : State(stack)
@@ -26,7 +26,7 @@ GameState::GameState(StateStack& stack)
 	// Disable culling for testing purposes
 	m_app->getAPI()->setFaceCulling(GraphicsAPI::NO_CULLING);
 
-	auto* shader = &m_app->getResourceManager().getShaderSet<PhongMaterialShader>();
+	auto* shader = &m_app->getResourceManager().getShaderSet<PBRMaterialShader>();
 
 	// Create/load models
 	auto cubeModel = ModelFactory::CubeModel::Create(glm::vec3(0.5f), shader);
@@ -74,7 +74,7 @@ GameState::GameState(StateStack& stack)
 		auto e = Entity::Create("Static cube");
 		e->addComponent<ModelComponent>(cubeModel);
 		e->addComponent<TransformComponent>(glm::vec3(-4.f, 1.f, -2.f));
-		auto mat = e->addComponent<MaterialComponent<PhongMaterial>>();
+		auto mat = e->addComponent<MaterialComponent<PBRMaterial>>();
 		mat->get()->setColor(glm::vec4(0.2f, 0.8f, 0.4f, 1.0f));
 		m_scene.addEntity(e);
 	}
@@ -83,10 +83,10 @@ GameState::GameState(StateStack& stack)
 		auto e = Entity::Create("Floor");
 		e->addComponent<ModelComponent>(planeModel);
 		e->addComponent<TransformComponent>(glm::vec3(0.f, 0.f, 0.f));
-		auto mat = e->addComponent<MaterialComponent<PhongMaterial>>();
-		mat->get()->setDiffuseTexture("sponza/textures/spnza_bricks_a_diff.tga");
+		auto mat = e->addComponent<MaterialComponent<PBRMaterial>>();
+		mat->get()->setAlbedoTexture("sponza/textures/spnza_bricks_a_diff.tga");
 		mat->get()->setNormalTexture("sponza/textures/spnza_bricks_a_ddn.tga");
-		mat->get()->setSpecularTexture("sponza/textures/spnza_bricks_a_spec.tga");
+		//mat->get()->setSpecularTexture("sponza/textures/spnza_bricks_a_spec.tga");
 		m_scene.addEntity(e);
 	}
 
@@ -95,7 +95,7 @@ GameState::GameState(StateStack& stack)
 		parentEntity = Entity::Create("Clingy cube");
 		parentEntity->addComponent<ModelComponent>(cubeModel);
 		parentEntity->addComponent<TransformComponent>(glm::vec3(-1.2f, 1.f, -1.f), glm::vec3(0.f, 0.f, 1.07f));
-		parentEntity->addComponent<MaterialComponent<PhongMaterial>>();
+		parentEntity->addComponent<MaterialComponent<PBRMaterial>>();
 		m_scene.addEntity(parentEntity);
 	}
 	{
@@ -103,10 +103,10 @@ GameState::GameState(StateStack& stack)
 		m_texturedCubeEntity = Entity::Create("Textured parent cube");
 		m_texturedCubeEntity->addComponent<ModelComponent>(fbxModel);
 		m_texturedCubeEntity->addComponent<TransformComponent>(glm::vec3(-1.f, 2.f, 0.f), m_texturedCubeEntity->getComponent<TransformComponent>().get());
-		auto mat = m_texturedCubeEntity->addComponent<MaterialComponent<PhongMaterial>>();
-		mat->get()->setDiffuseTexture("sponza/textures/spnza_bricks_a_diff.tga");
+		auto mat = m_texturedCubeEntity->addComponent<MaterialComponent<PBRMaterial>>();
+		mat->get()->setAlbedoTexture("sponza/textures/spnza_bricks_a_diff.tga");
 		mat->get()->setNormalTexture("sponza/textures/spnza_bricks_a_ddn.tga");
-		mat->get()->setSpecularTexture("sponza/textures/spnza_bricks_a_spec.tga");
+		//mat->get()->setSpecularTexture("sponza/textures/spnza_bricks_a_spec.tga");
 		m_texturedCubeEntity->setName("MovingCube");
 		m_scene.addEntity(m_texturedCubeEntity);
 		parentEntity->getComponent<TransformComponent>()->setParent(m_texturedCubeEntity->getComponent<TransformComponent>().get());
@@ -115,7 +115,7 @@ GameState::GameState(StateStack& stack)
 		auto e = Entity::Create("CubeRoot");
 		e->addComponent<ModelComponent>(cubeModel);
 		e->addComponent<TransformComponent>(glm::vec3(10.f, 0.f, 10.f));
-		e->addComponent<MaterialComponent<PhongMaterial>>();
+		e->addComponent<MaterialComponent<PBRMaterial>>();
 		m_scene.addEntity(e);
 		m_transformTestEntities.push_back(e);
 	}
@@ -123,7 +123,7 @@ GameState::GameState(StateStack& stack)
 		auto e = Entity::Create("CubeChild");
 		e->addComponent<ModelComponent>(cubeModel);
 		e->addComponent<TransformComponent>(glm::vec3(1.f, 1.f, 1.f), m_transformTestEntities[0]->getComponent<TransformComponent>().get());
-		e->addComponent<MaterialComponent<PhongMaterial>>();
+		e->addComponent<MaterialComponent<PBRMaterial>>();
 		m_scene.addEntity(e);
 		m_transformTestEntities.push_back(e);
 	}
@@ -131,7 +131,7 @@ GameState::GameState(StateStack& stack)
 		auto e = Entity::Create("CubeChildChild");
 		e->addComponent<ModelComponent>(cubeModel);
 		e->addComponent<TransformComponent>(glm::vec3(1.f, 1.f, 1.f), m_transformTestEntities[1]->getComponent<TransformComponent>().get());
-		e->addComponent<MaterialComponent<PhongMaterial>>();
+		e->addComponent<MaterialComponent<PBRMaterial>>();
 		m_scene.addEntity(e);
 		m_transformTestEntities.push_back(e);
 	}
@@ -148,7 +148,7 @@ GameState::GameState(StateStack& stack)
 			auto e = Entity::Create();
 			e->addComponent<ModelComponent>(cubeModel);
 			e->addComponent<TransformComponent>(glm::vec3(x * wallSize + mazeStart, 0.5f, y * wallSize + mazeStart));
-			e->addComponent<MaterialComponent<PhongMaterial>>();
+			e->addComponent<MaterialComponent<PBRMaterial>>();
 			m_scene.addEntity(e);
 		}
 	}
@@ -177,7 +177,7 @@ bool GameState::processInput(float dt) {
 
 	// Reload shaders
 	if (Input::WasKeyJustPressed(SAIL_KEY_R)) {
-		m_app->getResourceManager().reloadShader<PhongMaterialShader>();
+		m_app->getResourceManager().reloadShader<PBRMaterialShader>();
 	}
 
 	return true;
