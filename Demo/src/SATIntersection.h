@@ -34,6 +34,6 @@ private:
 	std::vector<glm::vec3> getAxes(const glm::vec3 tri1[3], const glm::vec3 tri2[3]);
 	bool projectionOverlapTest(glm::vec3& testVec, const glm::vec3 tri1[3], const glm::vec3 tri2[3]);
 	bool SAT(const glm::vec3 tri1[3], const glm::vec3 tri2[3], int earlyExitLevel);
-	bool meshVsMeshIntersection(std::vector<glm::vec3> mesh1, std::vector<glm::vec3> mesh2, int earlyExitLevel);
+	bool meshVsMeshIntersection(std::vector<glm::vec3> &mesh1, std::vector<glm::vec3> &mesh2, int earlyExitLevel);
 	// ---------------------
 };
