@@ -19,9 +19,9 @@ ModelViewerState::ModelViewerState(StateStack& stack)
 	, m_camController(&m_cam) {
 	SAIL_PROFILE_FUNCTION();
 
-	std::string inputFilePath = "networks/sphere_true.txt";
-	m_trianglesPerMesh = 200;
-	m_predictor = SAIL_NEW TFPredictor("networks/a.pb", "dense_input_1", "result_1/Sigmoid", m_trianglesPerMesh);
+	std::string inputFilePath = "networks/planets_50_tri_true.txt";
+	m_trianglesPerMesh = 50;
+	m_predictor = SAIL_NEW TFPredictor("networks/g10.pb", "dense_input_1", "result_1/Sigmoid", m_trianglesPerMesh);
 	//TFPredictor predictor("networks/frozen_model_10k.pb", "input_meshes", "result/Sigmoid", trianglesPerMesh); // asd
 	//TFPredictor predictor("networks/frozen_model_big_boy.pb", "input_meshes_4", "result_4/Sigmoid", trianglesPerMesh); // Great accuracy, terrible speed (1024 nodes first layer)
 	//TFPredictor predictor("networks/frozen_model_less_big_boy.pb", "input_meshes_5", "result_5/Sigmoid", trianglesPerMesh); // (256 nodes first layer)		
@@ -29,7 +29,7 @@ ModelViewerState::ModelViewerState(StateStack& stack)
 	//m_predictor = SAIL_NEW TFPredictor("networks/frozen_model_big_boy.pb", "input_meshes_4", "result_4/Sigmoid", m_trianglesPerMesh); // Great accuracy, terrible speed (1024 nodes first layer)
 	//m_predictor = SAIL_NEW TFPredictor("networks/frozen_model_less_big_boy.pb", "input_meshes_5", "result_5/Sigmoid", m_trianglesPerMesh); // (256 nodes first layer)		
 
-	m_satIntersector = SAIL_NEW SATIntersection(m_trianglesPerMesh);
+	m_satIntersector = SAIL_NEW SATIntersection(m_trianglesPerMesh, 0);
 
 	// Create model from input file
 	Mesh::Data mesh1Data;

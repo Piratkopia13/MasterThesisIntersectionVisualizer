@@ -11,6 +11,8 @@ SATIntersection::SATIntersection(unsigned int trianglesPerMesh, int earlyExitLev
 
 	m_lastIntersectionTime = 0.f;
 	m_lastIntersectionResult = false;
+
+
 }
 
 SATIntersection::~SATIntersection() {
