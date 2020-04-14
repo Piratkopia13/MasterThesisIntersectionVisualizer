@@ -29,7 +29,7 @@ ModelViewerState::ModelViewerState(StateStack& stack)
 	//m_predictor = SAIL_NEW TFPredictor("networks/frozen_model_big_boy.pb", "input_meshes_4", "result_4/Sigmoid", m_trianglesPerMesh); // Great accuracy, terrible speed (1024 nodes first layer)
 	//m_predictor = SAIL_NEW TFPredictor("networks/frozen_model_less_big_boy.pb", "input_meshes_5", "result_5/Sigmoid", m_trianglesPerMesh); // (256 nodes first layer)		
 
-	m_satIntersector = SAIL_NEW SATIntersection(m_trianglesPerMesh, 2);
+	m_satIntersector = SAIL_NEW SATIntersection(m_trianglesPerMesh, 0);
 
 	// Create model from input file
 	Mesh::Data mesh1Data;
@@ -294,6 +294,13 @@ bool ModelViewerState::renderImgui(float dt) {
 	ImGui::Checkbox("Continuous", &continuous);
 	ImGui::SliderFloat("Interval (s)", &interval, 0.f, 2.f);
 	bool btn = ImGui::Button("Do et");
+	
+	// History used for average times
+	static int i = 0;
+	static const int historySamples = 1000;
+	static std::vector<double> lastPredictionTimes(historySamples);
+	static std::vector<double> lastSATTimes(historySamples);
+	
 	if (continuous && timeSinceLastPrediction > interval || btn) {
 
 		std::vector<glm::vec3> mesh1Data = convertMeshToVertexVector(*m_mesh1->getComponent<ModelComponent>()->getModel()->getMesh(0), *m_mesh1->getComponent<TransformComponent>());
@@ -303,8 +310,13 @@ bool ModelViewerState::renderImgui(float dt) {
 
 		std::vector<glm::vec3> vertexData = mesh1Data;
 		vertexData.insert(vertexData.end(), mesh2Data.begin(), mesh2Data.end());
+		
 		prediction = m_predictor->predict(vertexData.data(), vertexData.size() * sizeof(glm::vec3));
 		actualIntersection = m_satIntersector->testIntersection(vertexData.data(), vertexData.size() * sizeof(glm::vec3));
+
+		lastPredictionTimes[i % lastPredictionTimes.size()] = m_predictor->getLastPredictionTime();
+		lastSATTimes[i % lastSATTimes.size()] = m_satIntersector->getLastIntersectionTime();
+		i++;
 
 		timeSinceLastPrediction = 0.f;
 		hasRun = true;
@@ -331,12 +343,26 @@ bool ModelViewerState::renderImgui(float dt) {
 		ImGui::Text("Prediction: %i", prediction);
 		ImGui::Text("Value: %.15f", m_predictor->getLastPredictionValue());
 		ImGui::Text("Time: %.3f ms", m_predictor->getLastPredictionTime());
+
+		double avgPredTime = 0;
+		for (auto& n : lastPredictionTimes) avgPredTime += n;
+		avgPredTime /= lastPredictionTimes.size();
+
+		ImGui::Text("Avg Time (%i measurements): %.3f ms", historySamples, avgPredTime);
 		ImGui::Separator();
 
 		ImGui::Text("Actual intersection: %i", actualIntersection);
 		ImGui::Text("Time: %.3f ms", m_satIntersector->getLastIntersectionTime());
+		
+		double avgSATTime = 0;
+		for (auto& n : lastSATTimes) avgSATTime += n;
+		avgSATTime /= lastSATTimes.size();
+
+		ImGui::Text("Avg Time (%i measurements): %.3f ms", historySamples, avgSATTime);
 		ImGui::Separator();
 		ImGui::Text((truePositive) ? "True positive" : (falsePositive) ? "False positive" : (falseNegative) ? "False negative" : "True negative");
+		ImGui::Text("Speedup: %.3f %%", (avgSATTime - avgPredTime) / avgSATTime * 100.0);
+		ImGui::Text("Relative performance: %.3f %%", (avgSATTime / avgPredTime) * 100.0);
 	}
 	timeSinceLastPrediction += dt;
 	ImGui::End();
