@@ -11,6 +11,8 @@ SATIntersection::SATIntersection(unsigned int trianglesPerMesh, int earlyExitLev
 
 	m_lastIntersectionTime = 0.f;
 	m_lastIntersectionResult = false;
+
+
 }
 
 SATIntersection::~SATIntersection() {
@@ -143,7 +145,7 @@ bool SATIntersection::SAT(const glm::vec3 tri1[3], const glm::vec3 tri2[3], int 
 	return returnValue;
 }
 
-bool SATIntersection::meshVsMeshIntersection(std::vector<glm::vec3> mesh1, std::vector<glm::vec3> mesh2, int earlyExitLevel) {
+bool SATIntersection::meshVsMeshIntersection(std::vector<glm::vec3> &mesh1, std::vector<glm::vec3> &mesh2, int earlyExitLevel) {
 	bool returnValue = false;
 
 	for (size_t i = 0; i < mesh1.size(); i += 3) {
