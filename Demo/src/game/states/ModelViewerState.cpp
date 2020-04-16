@@ -19,9 +19,9 @@ ModelViewerState::ModelViewerState(StateStack& stack)
 	, m_camController(&m_cam) {
 	SAIL_PROFILE_FUNCTION();
 
-	std::string inputFilePath = "networks/planets_50_tri_true.txt";
+	std::string inputFilePath = "networks/planet_with_heightmap.txt";
 	m_trianglesPerMesh = 50;
-	m_predictor = SAIL_NEW TFPredictor("networks/g10.pb", "dense_input_1", "result_1/Sigmoid", m_trianglesPerMesh);
+	m_predictor = SAIL_NEW TFPredictor("networks/g13.pb", "dense_input_1", "result_1/Sigmoid", m_trianglesPerMesh);
 	//TFPredictor predictor("networks/frozen_model_10k.pb", "input_meshes", "result/Sigmoid", trianglesPerMesh); // asd
 	//TFPredictor predictor("networks/frozen_model_big_boy.pb", "input_meshes_4", "result_4/Sigmoid", trianglesPerMesh); // Great accuracy, terrible speed (1024 nodes first layer)
 	//TFPredictor predictor("networks/frozen_model_less_big_boy.pb", "input_meshes_5", "result_5/Sigmoid", trianglesPerMesh); // (256 nodes first layer)		
