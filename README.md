@@ -1,43 +1,22 @@
 
-# Sail game engine :sailboat:
 
-[![Build status](https://ci.appveyor.com/api/projects/status/aqy3xsricje3cv28/branch/master?svg=true)](https://ci.appveyor.com/project/Piratkopia13/sail/branch/master)
+# Visualization tool
+### Accompanying the thesis *"A deep neural network approach for intersection testing of two 3D meshes"*  by [Alexander Wester](https://pirat.dev) and [Gustav Björk](https://praccen.github.io/).
 
-Sail is a small c++ game engine developed and maintained as a hobby project
+![Screenshot](visualization_program.png)
 
-Current features include
-  - Cross API support - DirectX 11 or 12 
-  - Component based entity system
-  - Event system
-  - Deferred rendering
-  - Hot reloadable shaders
-  - .. and more
+This is a tool for importing two meshes and in real-time perform intersection testing between them using both our Deep Neural Network or a default implementation of the Separating Axis Theorem.
 
-### Installation
+A few different mesh-pairs are supplied in an arbitrary format (each x y z coordinate for each vertex is stored in a space-separated txt file, two meshes after each other). It is also possible to import fbx meshes as long as they are triangulated and contain exactly 50 triangles.
 
-Sail requires Visual Studio 2017 or later.
+## Building
 
-Everything required to build should be contained in this repo. Hit me up if there are any issues.
+    # Clone the repository 
+    git clone https://github.com/Piratkopia13/MasterThesisIntersectionVisualizer.git
+    cd MasterThesisIntersectionVisualizer
+    # Fetch submodules recursively
+    git submodule update --init --recursive 
+    # Generate a Visual Studio 2019 solution
+    ./generateVS19.bat
+The solution should now be ready to start up and compile using either DirectX11 or 12.
 
-
-### Future things I want to implement
-
- - DXR (In the works)
- - PBR
- - AI
- - Vulkan
-
-License
-----
-
-My code (Sail/src/ and Demo/src/) is published under the MIT license
-
-I also make use of the FBX SDK:
-
-*This software contains Autodesk® FBX® code developed by Autodesk, Inc. Copyright 2008 Autodesk, Inc. All rights, reserved. Such code is provided "as is" and Autodesk, Inc. disclaims any and all warranties, whether express or implied, including without limitation the implied warranties of merchantability, fitness for a particular purpose or non-infringement of third party rights. In no event shall Autodesk, Inc. be liable for any direct, indirect, incidental, special, exemplary, or consequential damages (including, but not limited to, procurement of substitute goods or services; loss of use, data, or profits; or business interruption) however caused and on any theory of liability, whether in contract, strict liability, or tort (including negligence or otherwise) arising in any way out of such code.*
-
-----
-
-ƪ(ړײ)‎ƪ​​
-
-**Free Software, Hell Yeah!**
