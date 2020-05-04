@@ -20,3 +20,5 @@ A few different mesh-pairs are supplied in an arbitrary format (each x y z coord
     ./generateVS19.bat
 The solution should now be ready to start up and compile using either DirectX11 or 12.
 
+##
+If you have any questions regarding the thesis or this tool - feel free to contact us at me[at]pirat.dev or gbjorken96[at]hotmail.com 
