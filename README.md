@@ -1,7 +1,7 @@
 
 
 # Visualization tool
-### Accompanying the thesis *"A deep neural network approach for intersection testing of two 3D meshes"*  by [Alexander Wester](https://pirat.dev) and [Gustav Björk](https://praccen.github.io/).
+### Accompanying the thesis *"A Deep Neural Network Approach for Intersection Testing of Two 3D Meshes"*  by [Alexander Wester](https://pirat.dev) and [Gustav Björk](https://praccen.github.io/).
 
 ![Screenshot](visualization_program.png)
 
